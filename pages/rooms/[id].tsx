@@ -1,7 +1,6 @@
 import {
   useEffect,
   useMemo,
-  useRef,
 } from 'react';
 import {
   GetServerSideProps as SSP,
