@@ -1,4 +1,8 @@
-import { useEffect, useMemo } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
 import {
   GetServerSideProps as SSP,
   GetServerSidePropsContext as SSPC,
@@ -31,6 +35,7 @@ const SingleRoom = () => {
   const [session] = useSession();
   const router = useRouter();
   const { id } = router.query;
+  // const myVideoRef = useRef(null);
 
   const { data: allMessages } = useSubscription(ALL_MESSAGES, {
     variables: { room_id: id }, // id is room's UUID
@@ -53,7 +58,7 @@ const SingleRoom = () => {
 
   // console.log('### currentUser: ', currentUser);
 
-  const { data, loading } = useSubscription(USERS_IN_ROOM, {
+  const { data: roomData, loading } = useSubscription(USERS_IN_ROOM, {
     variables: { id }, // id is room's UUID
   });
 
@@ -92,7 +97,7 @@ const SingleRoom = () => {
         >
           <Skeleton w="30%" isLoaded={!loading}>
             <Heading as="h4" size="md">
-              {data?.room_by_pk.name || 'unnamed room'}
+              {roomData?.room_by_pk.name || 'unnamed room'}
             </Heading>
           </Skeleton>
           <Box backgroundColor="#EFEFEF" height="100%" marginY="2">
@@ -100,7 +105,7 @@ const SingleRoom = () => {
           </Box>
           <Skeleton w="60%" isLoaded={!loading}>
             <Wrap height="200px">
-              {data?.room_by_pk.users.map(({ user }: any) => (
+              {roomData?.room_by_pk.users.map(({ user }: any) => (
                 <WrapItem key={user.id}>
                   <Avatar name={user.name} src={user.image} />
                 </WrapItem>
@@ -109,7 +114,7 @@ const SingleRoom = () => {
           </Skeleton>
         </Flex>
 
-        <Skeleton isLoaded={!!session && !!currentUser}>
+        <Skeleton isLoaded={!!session && !!currentUser && !!allMessages}>
           {session && currentUser && allMessages && (
           <ChatWidget
             messages={allMessages.message}

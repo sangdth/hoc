@@ -23,7 +23,7 @@ export default function Header() {
     <Flex padding="2" marginBottom="2" alignItems="center">
       <Box>
         <Heading size="md">
-          <Link href="/"><a> Chi Bằng Học</a></Link>
+          <Link href="/"><a>Chi Bằng Học</a></Link>
         </Heading>
       </Box>
       <Box paddingX="8">

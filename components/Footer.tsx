@@ -1,10 +1,27 @@
-import { Box, Divider } from '@chakra-ui/react';
+import Link from 'next/link';
+import { Box, Divider, Flex } from '@chakra-ui/react';
 
 export default function Footer() {
   return (
-    <Box marginTop="2" padding="2">
+    <Box
+      marginTop="2"
+      paddingX="2"
+      paddingTop="4"
+      fontSize="10px"
+      color="#999999"
+    >
       <Divider />
-      © Chi Bằng Học
+      <Flex paddingY="2">
+        <Box>
+          <Link href="/"><a>© 2021 Chi Bằng Học</a></Link>
+        </Box>
+        <Box paddingX="10">
+          <Link href="/privacy"><a>Privacy</a></Link>
+        </Box>
+        <Box>
+          <Link href="/terms"><a>Terms</a></Link>
+        </Box>
+      </Flex>
     </Box>
   );
 }
