@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Flex,
   InputGroup,
@@ -7,6 +7,7 @@ import {
   Skeleton,
 } from '@chakra-ui/react';
 import { ArrowForwardIcon } from '@chakra-ui/icons';
+import { useKeyPress } from 'lib/helpers';
 import { UserProfile } from 'lib/types';
 
 import Message from './Message';
@@ -15,28 +16,44 @@ type MessageType = {
   id: string;
   created_at: string;
   updated_at: string;
-  user_id: string;
+  user_id?: string;
   text: string;
-  room_id: string;
+  room_id?: string;
+  user: UserProfile;
 };
 
 type Props = {
   messages: MessageType[];
-  user: UserProfile;
+  currentUser: UserProfile;
   isTyping: boolean;
+  onSend: (t: string) => void;
 };
 
 const ChatWidget = (props: Props) => {
-  const { messages, isTyping, user } = props;
+  const {
+    messages,
+    isTyping,
+    currentUser,
+    onSend,
+  } = props;
 
   const [value, setValue] = useState('');
+  const [isFocused, setFocus] = useState(false);
+  const [isPressed] = useKeyPress('Enter');
+
+  useEffect(() => {
+    if (isFocused && isPressed && value) {
+      onSend(value);
+      setValue('');
+    }
+  }, [isFocused, isPressed, value, onSend]);
 
   return (
     <Flex
       direction="column"
       height="100%"
       marginLeft="4"
-      maxWidth="360"
+      width="360px"
     >
       <Flex
         direction="column"
@@ -44,8 +61,9 @@ const ChatWidget = (props: Props) => {
       >
         {messages.map((o: MessageType) => (
           <Message
+            key={o.id}
             value={o.text}
-            mine={o.user_id === user.id}
+            mine={o.user.id === currentUser.id}
           />
         ))}
       </Flex>
@@ -54,6 +72,8 @@ const ChatWidget = (props: Props) => {
         <Input
           placeholder="Enter message..."
           value={value}
+          onFocus={() => setFocus(true)}
+          onBlur={() => setFocus(false)}
           onChange={(e) => setValue(e.target.value)}
         />
         {value && (

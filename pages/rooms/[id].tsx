@@ -22,15 +22,22 @@ import {
   useSession,
   useSubscription,
 } from 'lib/helpers';
-import { UserProfile } from 'lib/types';
+// import { UserProfile } from 'lib/types';
 import { USERS_IN_ROOM, LEAVE_ROOM } from 'graphqls/room';
 import { GET_SINGLE_USER } from 'graphqls/user';
+import { ALL_MESSAGES, SEND_MESSAGE } from 'graphqls/message';
 
 const SingleRoom = () => {
   const [session] = useSession();
   const router = useRouter();
   const { id } = router.query;
 
+  const { data: allMessages } = useSubscription(ALL_MESSAGES, {
+    variables: { room_id: id }, // id is room's UUID
+  });
+
+  // console.log('### allMessages: ', allMessages);
+  //
   const { data: userQuery } = useQuery(GET_SINGLE_USER, {
     variables: { email: session?.user.email },
     fetchPolicy: 'cache-and-network',
@@ -44,7 +51,7 @@ const SingleRoom = () => {
     return null;
   }, [userQuery]);
 
-  console.log('### currentUser: ', currentUser);
+  // console.log('### currentUser: ', currentUser);
 
   const { data, loading } = useSubscription(USERS_IN_ROOM, {
     variables: { id }, // id is room's UUID
@@ -73,31 +80,7 @@ const SingleRoom = () => {
     };
   }, [id, session, leaveRoom, router]);
 
-  // const { messages, appendMsg, setTyping } = useMessages([]);
-
-  /* const handleSend = (type, val) => { */
-  /*   if (type === "text" && val.trim()) { */
-  /*     appendMsg({ */
-  /*       type: "text", */
-  /*       content: { text: val }, */
-  /*       position: "right" */
-  /*     }); */
-
-  /*     setTyping(true); */
-
-  /*     setTimeout(() => { */
-  /*       appendMsg({ */
-  /*         type: "text", */
-  /*         content: { text: "Bala bala" } */
-  /*       }); */
-  /*     }, 1000); */
-  /*   } */
-  /* }; */
-
-  /* const renderMessageContent = (msg: string) => { */
-  /*   const { content } = msg; */
-  /*   // return <Bubble content={content.text} />; */
-  /* }; */
+  const [sendMessage] = useMutation(SEND_MESSAGE);
 
   return (
     <Layout>
@@ -127,18 +110,20 @@ const SingleRoom = () => {
         </Flex>
 
         <Skeleton isLoaded={!!session && !!currentUser}>
-          {session && currentUser && (
+          {session && currentUser && allMessages && (
           <ChatWidget
-            messages={[{
-              text: 'lorem',
-              id: '1',
-              created_at: '1',
-              updated_at: '0',
-              user_id: '2',
-              room_id: '3',
-            }]}
+            messages={allMessages.message}
             isTyping={false}
-            user={currentUser}
+            currentUser={currentUser}
+            onSend={(t: string) => sendMessage({
+              variables: {
+                object: {
+                  room_id: id,
+                  user_id: currentUser.id,
+                  text: t,
+                },
+              },
+            })}
           />
           )}
         </Skeleton>
