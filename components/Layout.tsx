@@ -5,7 +5,13 @@ import { useSession } from 'next-auth/client';
 import Header from './Header';
 import Footer from './Footer';
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+type Props = {
+  children: React.ReactNode;
+  protect?: boolean;
+};
+
+export default function Layout(props: Props) {
+  const { children, protect = true } = props;
   const [session] = useSession();
 
   return (
@@ -17,7 +23,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     >
       <Header />
       <Box flex="1" paddingX="2">
-        {session ? children : (<div>unauthorised</div>)}
+        {(!protect || session) ? children : <div>Unauthorised</div>}
       </Box>
       <Footer />
     </Flex>
