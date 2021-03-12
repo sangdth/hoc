@@ -1,0 +1,7 @@
+{
+  "watch": [
+    "custom-server.ts"
+  ],
+  "exec": "ts-node --project tsconfig.server.json custom-server.ts",
+  "ext": "ts"
+}

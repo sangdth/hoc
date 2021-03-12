@@ -1,0 +1,3 @@
+- [ ] Setup backend for simple-peer server
+- [ ] Make the frontend with chat works
+- [x] Setup custom server for front end to test
