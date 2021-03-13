@@ -40,6 +40,11 @@ export const USERS_IN_ROOM = gql`
     room_by_pk(id: $id) {
       id
       name
+      admin {
+        id
+        name
+        email
+      }
       users {
         user_id
         user {

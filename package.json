@@ -15,7 +15,8 @@
     "build": "next build",
     "start": "next start",
     "test": "jest --watch",
-    "test:ci": "jest --ci"
+    "test:ci": "jest --ci",
+    "ts-check": "node node_modules/.bin/tsc --project tsconfig.json --noEmit"
   },
   "author": "Sang Dang <sangdth@gmail.com>",
   "contributors": [],
@@ -26,6 +27,7 @@
     "@chakra-ui/react": "^1.3.4",
     "@emotion/react": "^11.1.5",
     "@emotion/styled": "^11.1.5",
+    "@types/simple-peer": "^9.6.2",
     "framer-motion": "^3.10.0",
     "graphql": "^15.5.0",
     "graphql-tag": "^2.11.0",
@@ -38,6 +40,7 @@
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
     "react-use": "^17.1.1",
+    "simple-peer": "^9.9.3",
     "sqlite3": "^5.0.1",
     "subscriptions-transport-ws": "^0.9.18"
   },

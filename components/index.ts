@@ -6,4 +6,5 @@ export { default as AccessDenied } from './AccessDenied';
 export { default as Header } from './Header';
 export { default as Footer } from './Footer';
 export { default as Layout } from './Layout';
-export { default as ChatWidget } from './ChatWidget';
+export { default as Chat } from './Chat';
+export { default as Stream } from './Stream';

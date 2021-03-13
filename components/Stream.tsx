@@ -5,7 +5,7 @@ type Props = {
   stream: any;
 };
 
-const StreamVideo = (props: Props) => {
+const Stream = (props: Props) => {
   const ref = useRef<HTMLVideoElement>(null);
 
   const { stream } = props;
@@ -26,4 +26,4 @@ const StreamVideo = (props: Props) => {
   );
 };
 
-export default StreamVideo;
+export default Stream;
