@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import NextLink from 'next/link';
 import {
   GetServerSideProps as SSP,
@@ -24,6 +24,7 @@ import {
   useRouter,
   useSession,
 } from 'lib/helpers';
+import { GET_SINGLE_USER } from 'graphqls/user';
 import { ALL_ROOMS, JOIN_ROOM } from 'graphqls/room';
 
 const RoomIndex = () => {
@@ -33,6 +34,7 @@ const RoomIndex = () => {
   });
 
   const [session] = useSession();
+  console.log('### session: ', session);
   const [joinRoom, { loading: mutateLoading }] = useMutation(JOIN_ROOM);
 
   const router = useRouter();
@@ -60,6 +62,29 @@ const RoomIndex = () => {
     };
   }, [session, joinRoom, router]);
 
+  const { data: userQuery } = useQuery(GET_SINGLE_USER, {
+    variables: { email: session?.user.email },
+    fetchPolicy: 'cache-and-network',
+  });
+
+  const currentUser = useMemo(() => {
+    const profile = userQuery?.user_aggregate.nodes[0];
+    if (profile) {
+      return profile;
+    }
+    return null;
+  }, [userQuery]);
+
+  const hrefLink = (room: any) => {
+    const isAdmin = room.admin.id === currentUser?.id;
+    return isAdmin ? '/rooms/[id]' : '/rooms/[id]/join/[code]';
+  };
+
+  const asLink = (room: any) => {
+    const isAdmin = room.admin.id === currentUser?.id;
+    return isAdmin ? `/rooms/${room.id}` : `/rooms/${room.id}/join/${currentUser?.id}`;
+  };
+
   return (
     <Layout>
       <Wrap>
@@ -78,7 +103,7 @@ const RoomIndex = () => {
                   fontWeight="600"
                 >
                   <Center h="80%" w="100%">
-                    <NextLink href="/rooms/[id]" as={`/rooms/${o.id}`} passHref>
+                    <NextLink href={hrefLink(o)} as={asLink(o)} passHref>
                       <LinkOverlay>
                         {o.name}
                       </LinkOverlay>

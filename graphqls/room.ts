@@ -5,6 +5,11 @@ export const ALL_ROOMS = gql`
     room {
       id
       name
+      admin {
+        id
+        name
+        email
+      }
       users {
         user {
           id

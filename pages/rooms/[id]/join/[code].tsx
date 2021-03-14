@@ -10,6 +10,7 @@ import {
 } from 'next';
 import Peer from 'simple-peer';
 import jwt from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
 import {
   Avatar,
   Box,
@@ -37,19 +38,19 @@ import { ALL_MESSAGES, SEND_MESSAGE } from 'graphqls/message';
 
 const secret = process.env.SECRET || 'secret';
 
-const SingleRoom = () => {
+// This is the single room for students
+const RoomStudent = () => {
   const [session] = useSession();
   const router = useRouter();
-  const { id } = router.query;
+  const { id: roomId, code: clientCode } = router.query;
   const myVideoRef = useRef<HTMLVideoElement>(null);
   const [otherStreams, setOtherStreams] = useState<any[]>([]);
+  console.log('### otherStreams on client: ', otherStreams);
 
   const { data: allMessages } = useSubscription(ALL_MESSAGES, {
-    variables: { room_id: id }, // id is room's UUID
+    variables: { room_id: roomId }, // id is room's UUID
   });
 
-  // console.log('### allMessages: ', allMessages);
-  //
   const { data: userQuery } = useQuery(GET_SINGLE_USER, {
     variables: { email: session?.user.email },
     fetchPolicy: 'cache-and-network',
@@ -66,7 +67,7 @@ const SingleRoom = () => {
   // console.log('### currentUser: ', currentUser);
 
   const { data: roomData, loading } = useSubscription(USERS_IN_ROOM, {
-    variables: { id }, // id is room's UUID
+    variables: { id: roomId }, // id is room's UUID
   });
 
   const [leaveRoom] = useMutation(LEAVE_ROOM);
@@ -76,7 +77,7 @@ const SingleRoom = () => {
       if (url.split('-').length !== 5) {
         leaveRoom({
           variables: {
-            room_id: id,
+            room_id: roomId,
             user_id: session?.user_id,
           },
         });
@@ -90,53 +91,108 @@ const SingleRoom = () => {
     return () => {
       router.events.off('routeChangeStart', handleRouteChange);
     };
-  }, [id, session, leaveRoom, router]);
+  }, [roomId, session, leaveRoom, router]);
 
   const [sendMessage] = useMutation(SEND_MESSAGE);
 
+  const id = clientCode;
+
   useEffect(() => {
-    // TODO: Make types for these guys
-    let socket: any;
-    const peers: any[] = [];
-    const others: any[] = [];
+    let socket;
+    const peers = [];
+    const others = [];
 
     window.navigator.mediaDevices
-      // TODO: Detect only teacher can be true video
       .getUserMedia({ audio: true, video: true })
       .then((stream) => {
         const { current: video } = myVideoRef;
-        if (video) {
-          video.srcObject = stream;
-          video.play();
-        }
+        socket = new WebSocket('wss://chibanghoc-ws.glitch.me');
 
-        // Don't know why we have to init new instance
-        socket = new WebSocket(process.env.NEXT_PUBLIC_HOC_WS || '');
+        video.srcObject = stream;
+        video.play();
 
-        // if user is not admin of this room, make request
-        if (roomData?.room_by_pk.admin.id !== currentUser?.id) {
-          socket.onopen = () => {
+        socket.onopen = () => {
+          console.log('### socket onopen on client');
+          socket.send(
+            JSON.stringify({
+              type: 'signal_request',
+              from: id,
+              to: roomId,
+            }),
+          );
+        };
+
+        socket.onmessage = ({ data }) => {
+          console.log('### socket on message client data: ', data);
+          const {
+            to, type, from, payload: { code } = { code: '' },
+          } = JSON.parse(data);
+
+          if (to !== id) return;
+
+          if (type === 'signal_response') {
+            const peer = new Peer({
+              initiator: false,
+              trickle: false,
+              stream,
+            });
+
+            peer.on('signal', (data) => {
+              socket.send(
+                JSON.stringify({
+                  type: 'sync_request',
+                  from: id,
+                  to: from,
+                  payload: {
+                    code: jwt.sign(data, secret),
+                  },
+                }),
+              );
+            });
+            peer.on('stream', (stream) => {
+              const tmp = [...others];
+              const foundIndex = tmp.findIndex((o) => o.id === stream.id);
+
+              if (foundIndex === -1) { // not found
+                tmp.push({
+                  id: from,
+                  stream,
+                });
+              } else {
+                tmp.splice(foundIndex, foundIndex + 1, stream);
+              }
+
+              setOtherStreams(tmp.map((o) => o.stream));
+            });
+
+            peer.signal(jwt.verify(code, secret));
+
+            const foundIndex = peers.findIndex((p: any) => p.id === from);
+
+            if (foundIndex === -1) {
+              peers.push({
+                id: from,
+                initiator: false,
+                peer,
+              });
+            } else {
+              peers.splice(foundIndex, foundIndex + 1, {
+                id: from,
+                initiator: false,
+                peer,
+              });
+            }
+          }
+
+          if (type === 'request_signal') {
             socket.send(
               JSON.stringify({
                 type: 'signal_request',
-                from: currentUser?.id,
-                to: roomData?.admin.id,
+                from: id,
+                to: code,
               }),
             );
-          };
-        }
-
-        socket.onmessage = ({ data }: { data: any }) => {
-          if (!data) return;
-
-          const {
-            to,
-            type,
-            from,
-            payload: { code } = { code: '' },
-          } = JSON.parse(data);
-
-          if (to !== currentUser?.id) return;
+          }
 
           if (type === 'signal_request') {
             const peer = new Peer({
@@ -144,46 +200,51 @@ const SingleRoom = () => {
               trickle: false,
               stream,
             });
-
-            peer.on('signal', (signalData: any) => {
+            peer.on('signal', (data) => {
               socket.send(
                 JSON.stringify({
                   type: 'signal_response',
-                  from: currentUser?.id,
+                  from: id,
                   to: from,
                   payload: {
-                    code: jwt.sign(signalData, secret),
+                    code: jwt.sign(data, secret),
                   },
                 }),
               );
             });
+            peer.on('stream', (stream) => {
+              const tmp = [...others];
+              const foundIndex = tmp.findIndex((o) => o.id === stream.id);
 
-            peer.on('stream', (otherStream: any) => {
-              others.push({
+              if (foundIndex === -1) { // not found
+                tmp.push({
+                  id: from,
+                  stream,
+                });
+              } else {
+                tmp.splice(foundIndex, foundIndex + 1, stream);
+              }
+
+              setOtherStreams(tmp.map((o) => o.stream));
+            });
+
+            const foundIndex = peers.findIndex((p: any) => p.id === from);
+
+            if (foundIndex === -1) {
+              peers.push({
                 id: from,
-                stream: otherStream,
+                initiator: true,
+                peer,
               });
-              setOtherStreams(others.map((o) => o.stream));
-            });
+            } else {
+              peers.splice(foundIndex, foundIndex + 1, {
+                id: from,
+                initiator: true,
+                peer,
+              });
+            }
 
-            peers.forEach((p: any) => {
-              socket.send(
-                JSON.stringify({
-                  type: 'request_signal',
-                  from: currentUser?.id,
-                  to: p.id,
-                  payload: {
-                    code: from,
-                  },
-                }),
-              );
-            });
-
-            peers.push({
-              id: from,
-              initiator: true, // TODO: detect only teacher
-              peer,
-            });
+            console.log('### peers: ', peers);
           }
 
           if (type === 'sync_request') {
@@ -202,23 +263,22 @@ const SingleRoom = () => {
           }
         };
       })
-      .catch((err: any) => {
-        // TODO: Error handling better
-        throw err;
-      });
+      .catch((err) => console.error(err));
 
-    const notifyLeave = () => peers.forEach(({ id: to }) => socket.send(
-      JSON.stringify({
-        type: 'leave_request',
-        from: currentUser.id,
-        to,
-      }),
-    ));
+    const notifyLeave = () => peers.forEach(({ id: to }) => {
+      console.log('student left');
+      socket.send(
+        JSON.stringify({
+          type: 'leave_request',
+          from: id,
+          to,
+        }),
+      );
+    });
 
     window.onbeforeunload = notifyLeave;
-
-    return () => notifyLeave();
-  }, [currentUser, roomData]);
+    return () => notifyLeave(); // eslint-disable-line
+  }, []);
 
   return (
     <Layout>
@@ -233,12 +293,12 @@ const SingleRoom = () => {
 
             <Skeleton w="30%" isLoaded={!loading}>
               <Heading as="h4" size="md">
-                {roomData?.room_by_pk.name || 'unnamed room'}
+                Student: {roomData?.room_by_pk.name || 'unnamed room'}
               </Heading>
             </Skeleton>
 
-            {otherStreams.map((stream) => (
-              <Stream key={stream.id} stream={stream} />
+            {otherStreams.map((stream: any) => (
+              <Stream key={`${stream.id}-${Date.now()}`} stream={stream} />
             ))}
           </Box>
           <Skeleton w="60%" isLoaded={!loading}>
@@ -261,7 +321,7 @@ const SingleRoom = () => {
             onSend={(t: string) => sendMessage({
               variables: {
                 object: {
-                  room_id: id,
+                  room_id: roomId,
                   user_id: currentUser?.id,
                   text: t,
                 },
@@ -275,7 +335,7 @@ const SingleRoom = () => {
   );
 };
 
-export default SingleRoom;
+export default RoomStudent;
 
 export const getServerSideProps: SSP = async (context: SSPC) => {
   const session = await getSession(context);
