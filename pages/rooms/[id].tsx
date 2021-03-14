@@ -228,13 +228,14 @@ const SingleRoom = () => {
           justifyContent="space-between"
           width="100%"
         >
-          <Skeleton w="30%" isLoaded={!loading}>
-            <Heading as="h4" size="md">
-              {roomData?.room_by_pk.name || 'unnamed room'}
-            </Heading>
-          </Skeleton>
           <Box backgroundColor="#EFEFEF" height="100%" marginY="2">
             <video ref={myVideoRef} muted style={{ width: '100%' }} />
+
+            <Skeleton w="30%" isLoaded={!loading}>
+              <Heading as="h4" size="md">
+                {roomData?.room_by_pk.name || 'unnamed room'}
+              </Heading>
+            </Skeleton>
 
             {otherStreams.map((stream) => (
               <Stream key={stream.id} stream={stream} />

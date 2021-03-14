@@ -4,9 +4,8 @@ import { Box, Divider, Flex } from '@chakra-ui/react';
 export default function Footer() {
   return (
     <Box
-      marginTop="2"
-      paddingX="2"
-      paddingTop="4"
+      h="60px"
+      paddingY="4"
       fontSize="10px"
       color="#999999"
     >

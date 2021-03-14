@@ -20,7 +20,7 @@ export default function Header() {
   const [session] = useSession();
 
   return (
-    <Flex padding="2" marginBottom="2" alignItems="center">
+    <Flex h="60px" paddingY="2" alignItems="center">
       <Box>
         <Heading size="md">
           <Link href="/"><a>Chi Bằng Học</a></Link>

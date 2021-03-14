@@ -1,22 +1,25 @@
-import { Flex, Spacer } from '@chakra-ui/react';
+import { Avatar, Flex, Spacer } from '@chakra-ui/react';
 
 type Props = {
   value: string;
   mine: boolean;
+  image?: string;
 };
 
 const Message = (props: Props) => {
-  const { value, mine } = props;
+  const { image, value, mine } = props;
 
   return (
-    <Flex>
+    <Flex alignItems="center">
       {mine && <Spacer />}
+      {image && !mine && <Avatar size="xs" src={image} marginRight="6px" />}
       <Flex
         maxWidth="90%"
         marginY="1"
         textAlign={mine ? 'right' : 'left'}
-        paddingX="4"
-        paddingY="2"
+        paddingX="3"
+        paddingY="1"
+        marginLeft={image ? '0' : '30px'}
         backgroundColor={mine ? 'green' : '#EEE'}
         color={mine ? '#FFF' : '#333'}
         borderTopLeftRadius="lg"
@@ -29,9 +32,6 @@ const Message = (props: Props) => {
       {!mine && <Spacer />}
     </Flex>
   );
-};
-
-Message.defaultProps = {
 };
 
 export default Message;

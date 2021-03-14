@@ -18,11 +18,11 @@ export default function Layout(props: Props) {
     <Flex
       direction="column"
       height="100%"
-      padding="4"
+      width="1080px"
       margin="0 auto"
     >
       <Header />
-      <Box flex="1" paddingX="2">
+      <Box flex="1" h="calc(100vh - 120px)">
         {(!protect || session) ? children : <div>Unauthorised</div>}
       </Box>
       <Footer />

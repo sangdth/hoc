@@ -1,4 +1,8 @@
-import { useEffect, useState } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   Flex,
   InputGroup,
@@ -40,13 +44,25 @@ const ChatWidget = (props: Props) => {
   const [value, setValue] = useState('');
   const [isFocused, setFocus] = useState(false);
   const [isPressed] = useKeyPress('Enter');
+  const chatRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isFocused && isPressed && value) {
       onSend(value);
       setValue('');
     }
+    chatRef.current?.scrollIntoView();
   }, [isFocused, isPressed, value, onSend]);
+
+  const shouldShowImage = (i: number) => {
+    const cm = messages[i]; // eslint-disable-line
+    const nm = messages[i + 1];
+    if (cm.user.id !== nm?.user.id) {
+      return cm.user.image;
+    }
+
+    return '';
+  };
 
   return (
     <Flex
@@ -54,20 +70,30 @@ const ChatWidget = (props: Props) => {
       height="100%"
       marginLeft="4"
       width="360px"
+      overflow="hidden"
     >
       <Flex
         direction="column"
         height="100%"
+        overflowY="scroll"
+        paddingRight="5px"
+        paddingBottom="5px"
       >
-        {messages.map((o: MessageType) => (
+        {messages.map((o: MessageType, i: number) => (
           <Message
             key={o.id}
             value={o.text}
             mine={o.user.id === currentUser.id}
+            image={shouldShowImage(i)}
           />
         ))}
+        <Skeleton
+          h="20px"
+          w="30%"
+          isLoaded={!isTyping}
+          ref={chatRef}
+        />
       </Flex>
-      {isTyping && <Skeleton h="20px" w="30%" isLoaded={!isTyping} />}
       <InputGroup>
         <Input
           placeholder="Enter message..."
