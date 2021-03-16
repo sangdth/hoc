@@ -34,15 +34,14 @@ const RoomIndex = () => {
   });
 
   const [session] = useSession();
-  console.log('### session: ', session);
   const [joinRoom, { loading: mutateLoading }] = useMutation(JOIN_ROOM);
 
   const router = useRouter();
 
   useEffect(() => {
-    const handleRouteChange = (url: string) => {
+    const handleRouteChange = async (url: string) => {
       if (url.includes('rooms') && url.split('-').length === 5) {
-        joinRoom({
+        await joinRoom({
           variables: {
             object: {
               room_id: url.split('/')[2],
@@ -77,12 +76,12 @@ const RoomIndex = () => {
 
   const hrefLink = (room: any) => {
     const isAdmin = room.admin.id === currentUser?.id;
-    return isAdmin ? '/rooms/[id]' : '/rooms/[id]/join/[code]';
+    return isAdmin ? '/rooms/[id]' : '/rooms/[id]/join';
   };
 
   const asLink = (room: any) => {
     const isAdmin = room.admin.id === currentUser?.id;
-    return isAdmin ? `/rooms/${room.id}` : `/rooms/${room.id}/join/${currentUser?.id}`;
+    return isAdmin ? `/rooms/${room.id}` : `/rooms/${room.id}/join`;
   };
 
   return (

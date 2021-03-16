@@ -32,7 +32,7 @@ import {
   useSubscription,
 } from 'lib/helpers';
 // import { UserProfile } from 'lib/types';
-import { USERS_IN_ROOM, LEAVE_ROOM } from 'graphqls/room';
+import { WATCH_ROOM, LEAVE_ROOM } from 'graphqls/room';
 import { GET_SINGLE_USER } from 'graphqls/user';
 import { ALL_MESSAGES, SEND_MESSAGE } from 'graphqls/message';
 
@@ -42,10 +42,11 @@ const secret = process.env.SECRET || 'secret';
 const RoomStudent = () => {
   const [session] = useSession();
   const router = useRouter();
-  const { id: roomId, code: clientCode } = router.query;
+  const { id: roomId } = router.query;
   const myVideoRef = useRef<HTMLVideoElement>(null);
   const [otherStreams, setOtherStreams] = useState<any[]>([]);
-  console.log('### otherStreams on client: ', otherStreams);
+
+  const [id] = useState(uuidv4());
 
   const { data: allMessages } = useSubscription(ALL_MESSAGES, {
     variables: { room_id: roomId }, // id is room's UUID
@@ -64,9 +65,7 @@ const RoomStudent = () => {
     return null;
   }, [userQuery]);
 
-  // console.log('### currentUser: ', currentUser);
-
-  const { data: roomData, loading } = useSubscription(USERS_IN_ROOM, {
+  const { data: roomData, loading } = useSubscription(WATCH_ROOM, {
     variables: { id: roomId }, // id is room's UUID
   });
 
@@ -95,12 +94,12 @@ const RoomStudent = () => {
 
   const [sendMessage] = useMutation(SEND_MESSAGE);
 
-  const id = clientCode;
-
   useEffect(() => {
-    let socket;
-    const peers = [];
-    const others = [];
+    if (!roomData) return;
+
+    let socket: any;
+    const peers: any[] = [];
+    const others: any[] = [];
 
     window.navigator.mediaDevices
       .getUserMedia({ audio: true, video: true })
@@ -108,22 +107,22 @@ const RoomStudent = () => {
         const { current: video } = myVideoRef;
         socket = new WebSocket('wss://chibanghoc-ws.glitch.me');
 
-        video.srcObject = stream;
-        video.play();
+        if (video) {
+          video.srcObject = stream;
+          video.play();
+        }
 
         socket.onopen = () => {
-          console.log('### socket onopen on client');
           socket.send(
             JSON.stringify({
               type: 'signal_request',
               from: id,
-              to: roomId,
+              to: roomData.room_by_pk.call_id,
             }),
           );
         };
 
-        socket.onmessage = ({ data }) => {
-          console.log('### socket on message client data: ', data);
+        socket.onmessage = ({ data }: { data: any }) => {
           const {
             to, type, from, payload: { code } = { code: '' },
           } = JSON.parse(data);
@@ -137,29 +136,32 @@ const RoomStudent = () => {
               stream,
             });
 
-            peer.on('signal', (data) => {
+            peer.on('signal', (signalData: any) => {
               socket.send(
                 JSON.stringify({
                   type: 'sync_request',
                   from: id,
                   to: from,
                   payload: {
-                    code: jwt.sign(data, secret),
+                    code: jwt.sign(signalData, secret),
                   },
                 }),
               );
             });
-            peer.on('stream', (stream) => {
+            peer.on('stream', (otherStream: any) => {
               const tmp = [...others];
-              const foundIndex = tmp.findIndex((o) => o.id === stream.id);
+              const foundIndex = tmp.findIndex((o) => o.id === from);
 
               if (foundIndex === -1) { // not found
                 tmp.push({
                   id: from,
-                  stream,
+                  stream: otherStream,
                 });
               } else {
-                tmp.splice(foundIndex, foundIndex + 1, stream);
+                tmp.splice(foundIndex, foundIndex + 1, {
+                  id: from,
+                  stream: otherStream,
+                });
               }
 
               setOtherStreams(tmp.map((o) => o.stream));
@@ -200,29 +202,32 @@ const RoomStudent = () => {
               trickle: false,
               stream,
             });
-            peer.on('signal', (data) => {
+            peer.on('signal', (signalData: any) => {
               socket.send(
                 JSON.stringify({
                   type: 'signal_response',
                   from: id,
                   to: from,
                   payload: {
-                    code: jwt.sign(data, secret),
+                    code: jwt.sign(signalData, secret),
                   },
                 }),
               );
             });
-            peer.on('stream', (stream) => {
+            peer.on('stream', (otherStream: any) => {
               const tmp = [...others];
-              const foundIndex = tmp.findIndex((o) => o.id === stream.id);
+              const foundIndex = tmp.findIndex((o) => o.id === from);
 
               if (foundIndex === -1) { // not found
                 tmp.push({
                   id: from,
-                  stream,
+                  stream: otherStream,
                 });
               } else {
-                tmp.splice(foundIndex, foundIndex + 1, stream);
+                tmp.splice(foundIndex, foundIndex + 1, {
+                  id: from,
+                  stream: otherStream,
+                });
               }
 
               setOtherStreams(tmp.map((o) => o.stream));
@@ -243,8 +248,6 @@ const RoomStudent = () => {
                 peer,
               });
             }
-
-            console.log('### peers: ', peers);
           }
 
           if (type === 'sync_request') {
@@ -266,7 +269,6 @@ const RoomStudent = () => {
       .catch((err) => console.error(err));
 
     const notifyLeave = () => peers.forEach(({ id: to }) => {
-      console.log('student left');
       socket.send(
         JSON.stringify({
           type: 'leave_request',
@@ -278,7 +280,7 @@ const RoomStudent = () => {
 
     window.onbeforeunload = notifyLeave;
     return () => notifyLeave(); // eslint-disable-line
-  }, []);
+  }, [roomData]); // eslint-disable-line
 
   return (
     <Layout>

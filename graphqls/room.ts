@@ -40,11 +40,12 @@ export const SINGLE_ROOM = gql`
 `;
 
 // Watching the users join the room
-export const USERS_IN_ROOM = gql`
-  subscription USERS_IN_ROOM ($id: uuid!) {
+export const WATCH_ROOM = gql`
+  subscription WATCH_ROOM ($id: uuid!) {
     room_by_pk(id: $id) {
       id
       name
+      call_id
       admin {
         id
         name
@@ -81,6 +82,15 @@ export const LEAVE_ROOM = gql`
   mutation USER_LEAVE_ROOM ($user_id: uuid!, $room_id: uuid!) {
     delete_room_user_by_pk (user_id: $user_id, room_id: $room_id) {
       user_id
+    }
+  }
+`;
+
+export const UPDATE_ROOM = gql`
+  mutation UPDATE_ROOM ($pk_columns: room_pk_columns_input!, $_set: room_set_input) {
+    update_room_by_pk (pk_columns: $pk_columns, _set: $_set) {
+      id
+      updated_at
     }
   }
 `;

@@ -18,7 +18,12 @@ export default function Layout(props: Props) {
     <Flex
       direction="column"
       height="100%"
-      width="1080px"
+      width={[
+        '90%', // 0-30em
+        '85%', // 30em-48em
+        '75%',
+        '65%',
+      ]}
       margin="0 auto"
     >
       <Header />
