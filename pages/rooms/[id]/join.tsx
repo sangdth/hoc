@@ -102,10 +102,10 @@ const RoomStudent = () => {
     const others: any[] = [];
 
     window.navigator.mediaDevices
-      .getUserMedia({ audio: true, video: true })
+      .getUserMedia({ audio: true, video: false })
       .then((stream) => {
         const { current: video } = myVideoRef;
-        socket = new WebSocket('wss://chibanghoc-ws.glitch.me');
+        socket = new WebSocket(process.env.NEXT_PUBLIC_HOC_WS || '');
 
         if (video) {
           video.srcObject = stream;
@@ -258,11 +258,18 @@ const RoomStudent = () => {
           }
           if (type === 'leave_request') {
             const streamIndex = others.findIndex((other) => other.id === from);
+            if (streamIndex !== -1) {
+              others.splice(streamIndex, 1);
+            }
+
             const registeredPeer = peers.find((peer) => peer.id === from);
-            others.splice(streamIndex, 1);
+
+            if (registeredPeer) {
+              peers.splice(peers.indexOf(registeredPeer), 1);
+              registeredPeer?.peer.destroy();
+            }
+
             setOtherStreams(others.map((o) => o.stream));
-            peers.splice(peers.indexOf(registeredPeer), 1);
-            registeredPeer?.peer.destroy();
           }
         };
       })
