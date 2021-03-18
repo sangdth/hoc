@@ -174,7 +174,7 @@ const SingleRoom = () => {
                   stream: otherStream,
                 });
               } else {
-                tmp.splice(foundIndex, foundIndex + 1, {
+                tmp.splice(foundIndex, 1, {
                   id: from,
                   stream: otherStream,
                 });
@@ -192,7 +192,7 @@ const SingleRoom = () => {
                 peer,
               });
             } else {
-              peers.splice(foundIndex, foundIndex + 1, {
+              peers.splice(foundIndex, 1, {
                 id: from,
                 initiator: true,
                 peer,
@@ -212,12 +212,14 @@ const SingleRoom = () => {
               );
             });
           }
+
           if (type === 'sync_request') {
             const registeredPeer = peers.find((peer) => peer.id === from);
-            if (registeredPeer) {
+            if (registeredPeer && registeredPeer.peer) {
               registeredPeer.peer.signal(jwt.verify(code, secret));
             }
           }
+
           if (type === 'leave_request') {
             const streamIndex = others.findIndex((other) => other.id === from);
 
@@ -229,7 +231,7 @@ const SingleRoom = () => {
 
             if (registeredPeer) {
               peers.splice(peers.indexOf(registeredPeer), 1);
-              registeredPeer?.peer.destroy();
+              registeredPeer?.peer?.destroy();
             }
 
             setOtherStreams(others.map((o) => o.stream));

@@ -148,6 +148,7 @@ const RoomStudent = () => {
                 }),
               );
             });
+
             peer.on('stream', (otherStream: any) => {
               const tmp = [...others];
               const foundIndex = tmp.findIndex((o) => o.id === from);
@@ -158,7 +159,7 @@ const RoomStudent = () => {
                   stream: otherStream,
                 });
               } else {
-                tmp.splice(foundIndex, foundIndex + 1, {
+                tmp.splice(foundIndex, 0, {
                   id: from,
                   stream: otherStream,
                 });
@@ -178,7 +179,7 @@ const RoomStudent = () => {
                 peer,
               });
             } else {
-              peers.splice(foundIndex, foundIndex + 1, {
+              peers.splice(foundIndex, 1, {
                 id: from,
                 initiator: false,
                 peer,
@@ -224,7 +225,7 @@ const RoomStudent = () => {
                   stream: otherStream,
                 });
               } else {
-                tmp.splice(foundIndex, foundIndex + 1, {
+                tmp.splice(foundIndex, 1, {
                   id: from,
                   stream: otherStream,
                 });
@@ -242,7 +243,7 @@ const RoomStudent = () => {
                 peer,
               });
             } else {
-              peers.splice(foundIndex, foundIndex + 1, {
+              peers.splice(foundIndex, 1, {
                 id: from,
                 initiator: true,
                 peer,
@@ -251,12 +252,15 @@ const RoomStudent = () => {
           }
 
           if (type === 'sync_request') {
+            console.log('### peers: ', peers);
             const registeredPeer = peers.find((peer) => peer.id === from);
-            if (registeredPeer) {
+            if (registeredPeer && registeredPeer.peer) {
               registeredPeer.peer.signal(jwt.verify(code, secret));
             }
           }
+
           if (type === 'leave_request') {
+            console.log('### others: ', others);
             const streamIndex = others.findIndex((other) => other.id === from);
             if (streamIndex !== -1) {
               others.splice(streamIndex, 1);
@@ -266,7 +270,7 @@ const RoomStudent = () => {
 
             if (registeredPeer) {
               peers.splice(peers.indexOf(registeredPeer), 1);
-              registeredPeer?.peer.destroy();
+              registeredPeer?.peer?.destroy();
             }
 
             setOtherStreams(others.map((o) => o.stream));
